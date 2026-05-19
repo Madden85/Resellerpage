@@ -1,22 +1,17 @@
 let PAGE_CONFIG = {};
-let BUTTON_TEXT = window.NUMO_BUTTON_TEXT || {};
+let BUTTON_TEXT = {};
+let pageStarted = false;
 
-async function loadPageConfig() {
-  try {
-    const res = await fetch("index2.html?v=" + Date.now(), { cache: "no-store" });
-    const html = await res.text();
-    const doc = new DOMParser().parseFromString(html, "text/html");
-    const configEl = doc.getElementById("numoConfig");
+function getConfig() {
+  const frame = document.getElementById("configFrame");
 
-    if (!configEl) {
-      throw new Error("Config tidak jumpa dalam index2.html");
-    }
-
-    PAGE_CONFIG = JSON.parse(configEl.textContent.trim());
-  } catch (err) {
-    console.error("Gagal load config:", err);
-    PAGE_CONFIG = {};
+  if (frame && frame.contentWindow && frame.contentWindow.NUMO_PAGE_CONFIG) {
+    PAGE_CONFIG = frame.contentWindow.NUMO_PAGE_CONFIG || {};
+  } else {
+    PAGE_CONFIG = window.NUMO_PAGE_CONFIG || {};
   }
+
+  BUTTON_TEXT = window.NUMO_BUTTON_TEXT || {};
 }
 
 function setText(id, value, isHtml = false) {
@@ -31,6 +26,8 @@ function applyTextConfig() {
 
   setText("brandTitle", TEXT.brandTitle);
   setText("brandSubtitle", TEXT.brandSubtitle);
+  setText("loginTitle", TEXT.loginTitle);
+  setText("loginInstruction", TEXT.loginInstruction);
   setText("topNotice", TEXT.topNotice);
   setText("stockTitle", TEXT.stockTitle);
   setText("paymentTitle", TEXT.paymentTitle);
@@ -39,10 +36,17 @@ function applyTextConfig() {
   setText("footerText", TEXT.footerText);
   setText("refreshButton", BUTTON_TEXT.refreshButton);
   setText("orderButton", BUTTON_TEXT.orderButton);
+  setText("loginButton", BUTTON_TEXT.loginButton);
+  setText("logoutButton", BUTTON_TEXT.logoutButton);
+
+  const passwordInput = document.getElementById("passwordInput");
+  if (passwordInput && BUTTON_TEXT.passwordPlaceholder) {
+    passwordInput.placeholder = BUTTON_TEXT.passwordPlaceholder;
+  }
 
   const orderButton = document.getElementById("orderButton");
   if (orderButton) {
-    let botLink = PAGE_CONFIG.RESELLER_BOT_LINK || "https://t.me/NumoReseller_bot";
+    let botLink = PAGE_CONFIG.RESELLER_BOT_LINK || "#";
     if (botLink && !botLink.startsWith("http")) {
       botLink = "https://t.me/" + botLink.replace("@", "");
     }
@@ -56,10 +60,10 @@ function renderPaymentQr() {
   const qrContainer = document.getElementById("qrContainer");
   if (!qrContainer) return;
 
-  const qrImage = PAGE_CONFIG.PAYMENT_QR_IMAGE || "./paymentqr.jpg";
+  const qrImage = PAGE_CONFIG.PAYMENT_QR_IMAGE || "";
 
   if (qrImage) {
-    qrContainer.innerHTML = `<img class="qr-image" src="${qrImage}?v=${Date.now()}" alt="QR Payment" />`;
+    qrContainer.innerHTML = `<img class="qr-image" src="${qrImage}" alt="QR Payment" />`;
   } else {
     qrContainer.innerHTML = `<div class="qr-placeholder">LETAK QR PAYMENT DI SINI</div>`;
   }
@@ -71,21 +75,83 @@ function jsonp(url) {
 
     window[callbackName] = function(data) {
       delete window[callbackName];
-      document.body.removeChild(script);
+      if (script.parentNode) document.body.removeChild(script);
       resolve(data);
     };
 
     const script = document.createElement("script");
     script.src = url + (url.includes("?") ? "&" : "?") + "callback=" + callbackName;
-
     script.onerror = function() {
       delete window[callbackName];
-      document.body.removeChild(script);
-      reject(new Error("Gagal load data stock"));
+      if (script.parentNode) document.body.removeChild(script);
+      reject(new Error("Gagal load data"));
     };
 
     document.body.appendChild(script);
   });
+}
+
+function showLoginMessage(type, text) {
+  const box = document.getElementById("loginMessage");
+  if (!box) return;
+
+  if (!text) {
+    box.innerHTML = "";
+    return;
+  }
+
+  box.innerHTML = `<div class="${type === "success" ? "success" : "error"}">${text}</div>`;
+}
+
+async function checkPassword() {
+  const input = document.getElementById("passwordInput");
+  const password = input ? input.value.trim() : "";
+
+  if (!password) {
+    showLoginMessage("error", "Sila masukkan password.");
+    return;
+  }
+
+  showLoginMessage("success", BUTTON_TEXT.checkingPasswordText || "Checking password...");
+
+  try {
+    const apiUrl = PAGE_CONFIG.RESELLER_STOCK_API_URL || "";
+    if (!apiUrl || apiUrl.includes("PASTE_")) throw new Error("API URL belum diset");
+
+    const data = await jsonp(apiUrl + "?mode=checkPassword&password=" + encodeURIComponent(password));
+
+    if (data && data.ok && data.valid) {
+      sessionStorage.setItem("numo_reseller_logged_in", "YES");
+      showMainContent();
+      return;
+    }
+
+    showLoginMessage("error", BUTTON_TEXT.wrongPasswordText || "Password salah. Sila cuba semula.");
+  } catch (err) {
+    showLoginMessage("error", "Gagal semak password. Sila cuba semula.");
+  }
+}
+
+function showMainContent() {
+  const loginCard = document.getElementById("loginCard");
+  const mainContent = document.getElementById("mainContent");
+
+  if (loginCard) loginCard.style.display = "none";
+  if (mainContent) mainContent.style.display = "block";
+
+  loadStock();
+}
+
+function logoutPage() {
+  sessionStorage.removeItem("numo_reseller_logged_in");
+  const loginCard = document.getElementById("loginCard");
+  const mainContent = document.getElementById("mainContent");
+  const passwordInput = document.getElementById("passwordInput");
+
+  if (mainContent) mainContent.style.display = "none";
+  if (loginCard) loginCard.style.display = "block";
+  if (passwordInput) passwordInput.value = "";
+  showLoginMessage("", "");
 }
 
 function formatDate(isoString) {
@@ -112,12 +178,11 @@ async function loadStock() {
   if (updatedAt) updatedAt.textContent = "";
 
   try {
-    const apiUrl = PAGE_CONFIG.RESELLER_STOCK_API_URL || "https://script.google.com/macros/s/AKfycbxNGsUEvcHCngNotv3qRmnBYi4VAX9XU7fPv7Mv7cqyl3LT3WdjT9ZsuSu9I-GI43qS2Q/exec";
-    const data = await jsonp(apiUrl + "?mode=resellerStock");
+    const apiUrl = PAGE_CONFIG.RESELLER_STOCK_API_URL || "";
+    if (!apiUrl || apiUrl.includes("PASTE_")) throw new Error("RESELLER_STOCK_API_URL belum diset");
 
-    if (!data.ok) {
-      throw new Error(data.error || "API error");
-    }
+    const data = await jsonp(apiUrl + "?mode=resellerStock");
+    if (!data.ok) throw new Error(data.error || "API error");
 
     renderStock(data.products || []);
 
@@ -125,7 +190,6 @@ async function loadStock() {
       updatedAt.textContent = `${BUTTON_TEXT.lastUpdatedText || "Last updated:"} ${formatDate(data.updatedAt)}`;
     }
   } catch (err) {
-    console.error("Stock error:", err);
     stockList.innerHTML = `<div class="error">${BUTTON_TEXT.errorText || "Gagal load stock.<br />Sila refresh semula atau hubungi admin."}</div>`;
   }
 }
@@ -142,6 +206,7 @@ function renderStock(products) {
 
   stockList.innerHTML = products.map(product => {
     const prices = PRICES[product.key] || [];
+
     return `
       <div class="stock-item" data-product="${product.key}">
         <button class="stock-head" type="button" onclick="togglePrice('${product.key}')">
@@ -189,10 +254,36 @@ function togglePrice(productKey) {
   item.classList.toggle("open");
 }
 
-async function initPage() {
-  await loadPageConfig();
+function initPage() {
+  if (pageStarted) return;
+  pageStarted = true;
+
+  getConfig();
   applyTextConfig();
-  loadStock();
+
+  const loginButton = document.getElementById("loginButton");
+  const logoutButton = document.getElementById("logoutButton");
+  const passwordInput = document.getElementById("passwordInput");
+
+  if (loginButton) loginButton.addEventListener("click", checkPassword);
+  if (logoutButton) logoutButton.addEventListener("click", logoutPage);
+  if (passwordInput) {
+    passwordInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") checkPassword();
+    });
+  }
+
+  if (sessionStorage.getItem("numo_reseller_logged_in") === "YES") {
+    showMainContent();
+  }
 }
 
-window.addEventListener("DOMContentLoaded", initPage);
+window.addEventListener("load", function() {
+  const frame = document.getElementById("configFrame");
+  if (frame) {
+    frame.addEventListener("load", initPage);
+    setTimeout(initPage, 800);
+  } else {
+    initPage();
+  }
+});
