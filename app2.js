@@ -1,11 +1,9 @@
 window.NUMO_BUTTON_TEXT = {
   refreshButton: "Refresh Stock",
   orderButton: "DAPATKAN AKAUN",
-
   priceHeaderPlan: "Plan",
   priceHeaderReseller: "Reseller",
   priceHeaderSell: "Jual Min",
-
   noPriceText: "Harga belum tersedia. Sila tanya admin.",
   slotText: "slot available",
   loadingText: "Loading stock...",
