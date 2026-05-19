@@ -1,6 +1,12 @@
 window.NUMO_BUTTON_TEXT = {
   refreshButton: "Refresh Stock",
   orderButton: "DAPATKAN AKAUN",
+  loginButton: "LOGIN",
+  logoutButton: "LOGOUT",
+  passwordPlaceholder: "Password reseller",
+  checkingPasswordText: "Checking password...",
+  wrongPasswordText: "Password salah. Sila cuba semula.",
+  loginSuccessText: "Login berjaya.",
   priceHeaderPlan: "Plan",
   priceHeaderReseller: "Reseller",
   priceHeaderSell: "Jual Min",

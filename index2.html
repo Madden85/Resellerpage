@@ -5,58 +5,44 @@
   <title>NumoReseller Config</title>
 </head>
 <body>
-<script id="numoConfig" type="application/json">
-{
-  "RESELLER_STOCK_API_URL": "https://script.google.com/macros/s/AKfycbxNGsUEvcHCngNotv3qRmnBYi4VAX9XU7fPv7Mv7cqyl3LT3WdjT9ZsuSu9I-GI43qS2Q/exec",
-  "RESELLER_BOT_LINK": "https://t.me/NumoReseller_bot",
-  "PAYMENT_QR_IMAGE": "./paymentqr.jpg",
-  "TEXT": {
-    "brandTitle": "NumoReseller",
-    "brandSubtitle": "STOCK CHECKER",
-    "topNotice": "Check stock dahulu sebelum buat payment. Lepas payment, tekan Dapatkan Akaun dan hantar resit dalam bot.",
-    "stockTitle": "📦 Stock Available",
-    "paymentTitle": "💳 Payment",
-    "paymentInstruction": "Sila check stock dahulu. Jika stock available, buat payment dan tekan button Dapatkan Akaun.",
-    "paymentNote": "Scan QR untuk buat bayaran.<br />Selepas payment, tekan button di bawah.",
-    "footerText": "Numo Ventures © Reseller System"
+<script>
+window.NUMO_PAGE_CONFIG = {
+  RESELLER_STOCK_API_URL: "https://script.google.com/macros/s/AKfycbxNGsUEvcHCngNotv3qRmnBYi4VAX9XU7fPv7Mv7cqyl3LT3WdjT9ZsuSu9I-GI43qS2Q/exec",
+  RESELLER_BOT_LINK: "https://t.me/NumoReseller_bot",
+  PAYMENT_QR_IMAGE: "./paymentqr.jpg",
+
+  TEXT: {
+    brandTitle: "NumoReseller",
+    brandSubtitle: "STOCK CHECKER",
+    loginTitle: "🔐 Reseller Login",
+    loginInstruction: "Masukkan password reseller untuk check stock.",
+    topNotice: "Check stock dahulu sebelum buat payment. Lepas payment, tekan Dapatkan Akaun dan hantar resit dalam bot.",
+    stockTitle: "📦 Stock Available",
+    paymentTitle: "💳 Payment",
+    paymentInstruction: "Sila check stock dahulu. Jika stock available, buat payment dan tekan button Dapatkan Akaun.",
+    paymentNote: "Scan QR untuk buat bayaran.<br />Selepas payment, tekan button di bawah.",
+    footerText: "Numo Ventures © Reseller System"
   },
-  "PRICES": {
-    "netflix": [
-      { "plan": "1 Bulan", "reseller": "RM20", "sell": "RM25", "note": "" },
-      { "plan": "2 Bulan", "reseller": "RM38", "sell": "RM45", "note": "" },
-      { "plan": "3 Bulan", "reseller": "RM55", "sell": "RM65", "note": "FREE YouTube Premium 1 Bulan" },
-      { "plan": "6 Bulan", "reseller": "RM110", "sell": "RM130", "note": "FREE YouTube Premium 2 Bulan" },
-      { "plan": "12 Bulan", "reseller": "RM215", "sell": "RM250", "note": "FREE YouTube Premium 4 Bulan" }
+
+  PRICES: {
+    netflix: [
+      { plan: "1 Bulan", reseller: "RM20", sell: "RM25", note: "" },
+      { plan: "2 Bulan", reseller: "RM38", sell: "RM45", note: "" },
+      { plan: "3 Bulan", reseller: "RM55", sell: "RM65", note: "FREE YouTube Premium 1 Bulan" },
+      { plan: "6 Bulan", reseller: "RM110", sell: "RM130", note: "FREE YouTube Premium 2 Bulan" },
+      { plan: "12 Bulan", reseller: "RM215", sell: "RM250", note: "FREE YouTube Premium 4 Bulan" }
     ],
-    "youtube_own": [
-      { "plan": "1 Bulan", "reseller": "RM8", "sell": "RM12", "note": "Own Email" }
-    ],
-    "youtube_seller": [
-      { "plan": "1 Bulan", "reseller": "RM6", "sell": "RM10", "note": "Seller Email" }
-    ],
-    "spotify": [
-      { "plan": "1 Bulan", "reseller": "RM6", "sell": "RM10", "note": "" }
-    ],
-    "disney": [
-      { "plan": "1 Bulan", "reseller": "RM10", "sell": "RM15", "note": "" }
-    ],
-    "iqiyi": [
-      { "plan": "1 Bulan", "reseller": "RM5", "sell": "RM8", "note": "" }
-    ],
-    "viu": [
-      { "plan": "1 Bulan", "reseller": "RM5", "sell": "RM8", "note": "" }
-    ],
-    "sooka_tv": [
-      { "plan": "1 Bulan", "reseller": "RM12", "sell": "RM18", "note": "TV" }
-    ],
-    "sooka_tablet": [
-      { "plan": "1 Bulan", "reseller": "RM10", "sell": "RM15", "note": "Tablet" }
-    ],
-    "sooka_phone": [
-      { "plan": "1 Bulan", "reseller": "RM10", "sell": "RM15", "note": "Phone" }
-    ]
+    youtube_own: [{ plan: "1 Bulan", reseller: "RM8", sell: "RM12", note: "Own Email" }],
+    youtube_seller: [{ plan: "1 Bulan", reseller: "RM6", sell: "RM10", note: "Seller Email" }],
+    spotify: [{ plan: "1 Bulan", reseller: "RM6", sell: "RM10", note: "" }],
+    disney: [{ plan: "1 Bulan", reseller: "RM10", sell: "RM15", note: "" }],
+    iqiyi: [{ plan: "1 Bulan", reseller: "RM5", sell: "RM8", note: "" }],
+    viu: [{ plan: "1 Bulan", reseller: "RM5", sell: "RM8", note: "" }],
+    sooka_tv: [{ plan: "1 Bulan", reseller: "RM12", sell: "RM18", note: "TV" }],
+    sooka_tablet: [{ plan: "1 Bulan", reseller: "RM10", sell: "RM15", note: "Tablet" }],
+    sooka_phone: [{ plan: "1 Bulan", reseller: "RM10", sell: "RM15", note: "Phone" }]
   }
-}
+};
 </script>
 </body>
 </html>
