@@ -243,6 +243,7 @@ function renderPricePanel(prices) {
         <div class="reseller-price">${item.reseller}</div>
         <div class="sell-price">${item.sell}</div>
         ${item.note ? `<div class="bonus-note">🎁 ${item.note}</div>` : ""}
+        ${item.warning ? `<div class="warning-note">${item.warning}</div>` : ""}
       </div>
     `).join("")}
   `;
