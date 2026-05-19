@@ -3,13 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
   <title>NumoReseller Stock Checker</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -170,6 +167,15 @@
       margin-bottom: 8px;
     }
 
+    .price-labels {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 8px;
+      font-size: 11px;
+      color: #8db5c8;
+      margin-bottom: 4px;
+    }
+
     .price-row {
       display: grid;
       grid-template-columns: 1fr auto auto;
@@ -180,9 +186,7 @@
       font-size: 13px;
     }
 
-    .price-row:last-child {
-      border-bottom: 0;
-    }
+    .price-row:last-child { border-bottom: 0; }
 
     .plan-name {
       font-weight: 700;
@@ -206,16 +210,6 @@
       font-size: 12px;
       color: #b8d8e8;
       margin-top: -3px;
-    }
-
-    .price-labels {
-      display: grid;
-      grid-template-columns: 1fr auto auto;
-      gap: 8px;
-      font-size: 11px;
-      color: #8db5c8;
-      margin-bottom: 4px;
-      padding-right: 0;
     }
 
     .updated {
@@ -316,6 +310,8 @@
 </head>
 
 <body>
+  <iframe id="configFrame" src="index2.html" style="display:none;"></iframe>
+
   <div class="page">
     <div class="header">
       <div id="brandTitle" class="logo">NumoReseller</div>
@@ -358,7 +354,7 @@
         </div>
       </div>
 
-      <a id="orderButton" class="btn btn-primary" href="#" target="_blank">
+      <a id="orderButton" class="btn btn-primary" href="#" target="_blank" rel="noopener">
         DAPATKAN AKAUN
       </a>
     </div>
@@ -368,7 +364,6 @@
     </div>
   </div>
 
-  <script src="index2.html"></script>
   <script src="app2.js"></script>
   <script src="app.js"></script>
 </body>

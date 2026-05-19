@@ -1,18 +1,15 @@
-const PAGE_CONFIG = window.NUMO_PAGE_CONFIG || {};
-const BUTTON_TEXT = window.NUMO_BUTTON_TEXT || {};
+function getPageConfig() {
+  return window.NUMO_PAGE_CONFIG || {};
+}
 
-const RESELLER_STOCK_API_URL = PAGE_CONFIG.RESELLER_STOCK_API_URL || "";
-const RESELLER_BOT_LINK = PAGE_CONFIG.RESELLER_BOT_LINK || "#";
-const PAYMENT_QR_IMAGE = PAGE_CONFIG.PAYMENT_QR_IMAGE || "";
-const TEXT = PAGE_CONFIG.TEXT || {};
-const PRICES = PAGE_CONFIG.PRICES || {};
+function getButtonText() {
+  return window.NUMO_BUTTON_TEXT || {};
+}
 
 function setText(id, value, isHtml = false) {
   const el = document.getElementById(id);
 
-  if (!el || value === undefined || value === null) {
-    return;
-  }
+  if (!el || value === undefined || value === null) return;
 
   if (isHtml) {
     el.innerHTML = value;
@@ -22,34 +19,39 @@ function setText(id, value, isHtml = false) {
 }
 
 function applyTextConfig() {
-  setText("brandTitle", TEXT.brandTitle);
-  setText("brandSubtitle", TEXT.brandSubtitle);
-  setText("topNotice", TEXT.topNotice);
-  setText("stockTitle", TEXT.stockTitle);
-  setText("paymentTitle", TEXT.paymentTitle);
-  setText("paymentInstruction", TEXT.paymentInstruction, true);
-  setText("paymentNote", TEXT.paymentNote, true);
-  setText("footerText", TEXT.footerText);
+  const config = getPageConfig();
+  const buttonText = getButtonText();
+  const text = config.TEXT || {};
 
-  setText("refreshButton", BUTTON_TEXT.refreshButton);
-  setText("orderButton", BUTTON_TEXT.orderButton);
+  setText("brandTitle", text.brandTitle);
+  setText("brandSubtitle", text.brandSubtitle);
+  setText("topNotice", text.topNotice);
+  setText("stockTitle", text.stockTitle);
+  setText("paymentTitle", text.paymentTitle);
+  setText("paymentInstruction", text.paymentInstruction, true);
+  setText("paymentNote", text.paymentNote, true);
+  setText("footerText", text.footerText);
+
+  setText("refreshButton", buttonText.refreshButton);
+  setText("orderButton", buttonText.orderButton);
 
   const orderButton = document.getElementById("orderButton");
   if (orderButton) {
-    orderButton.href = RESELLER_BOT_LINK;
+    orderButton.href = config.RESELLER_BOT_LINK || "#";
   }
 
   renderPaymentQr();
 }
 
 function renderPaymentQr() {
+  const config = getPageConfig();
   const qrContainer = document.getElementById("qrContainer");
 
   if (!qrContainer) return;
 
-  if (PAYMENT_QR_IMAGE) {
+  if (config.PAYMENT_QR_IMAGE) {
     qrContainer.innerHTML = `
-      <img class="qr-image" src="${PAYMENT_QR_IMAGE}" alt="QR Payment" />
+      <img class="qr-image" src="${escapeHtml(config.PAYMENT_QR_IMAGE)}" alt="QR Payment" />
     `;
   } else {
     qrContainer.innerHTML = `
@@ -60,11 +62,13 @@ function renderPaymentQr() {
 
 function jsonp(url) {
   return new Promise((resolve, reject) => {
-    const callbackName = "jsonp_callback_" + Math.round(100000 * Math.random());
+    const callbackName = "jsonp_callback_" + Date.now() + "_" + Math.round(100000 * Math.random());
 
     window[callbackName] = function(data) {
       delete window[callbackName];
-      document.body.removeChild(script);
+      if (script && script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
       resolve(data);
     };
 
@@ -73,7 +77,9 @@ function jsonp(url) {
 
     script.onerror = function() {
       delete window[callbackName];
-      document.body.removeChild(script);
+      if (script && script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
       reject(new Error("Gagal load data stock"));
     };
 
@@ -98,23 +104,25 @@ function formatDate(isoString) {
 }
 
 async function loadStock() {
+  const config = getPageConfig();
+  const buttonText = getButtonText();
   const stockList = document.getElementById("stockList");
   const updatedAt = document.getElementById("updatedAt");
 
   if (!stockList) return;
 
-  stockList.innerHTML = `<div class="loading">${BUTTON_TEXT.loadingText || "Loading stock..."}</div>`;
+  stockList.innerHTML = `<div class="loading">${buttonText.loadingText || "Loading stock..."}</div>`;
 
-  if (updatedAt) {
-    updatedAt.textContent = "";
-  }
+  if (updatedAt) updatedAt.textContent = "";
 
   try {
-    if (!RESELLER_STOCK_API_URL || RESELLER_STOCK_API_URL.includes("PASTE_")) {
+    const apiUrl = config.RESELLER_STOCK_API_URL || "";
+
+    if (!apiUrl || apiUrl.includes("PASTE_")) {
       throw new Error("RESELLER_STOCK_API_URL belum diset");
     }
 
-    const data = await jsonp(RESELLER_STOCK_API_URL + "?mode=resellerStock");
+    const data = await jsonp(apiUrl + "?mode=resellerStock");
 
     if (!data.ok) {
       throw new Error(data.error || "API error");
@@ -123,47 +131,48 @@ async function loadStock() {
     renderStock(data.products || []);
 
     if (updatedAt) {
-      updatedAt.textContent =
-        `${BUTTON_TEXT.lastUpdatedText || "Last updated:"} ${formatDate(data.updatedAt)}`;
+      updatedAt.textContent = `${buttonText.lastUpdatedText || "Last updated:"} ${formatDate(data.updatedAt)}`;
     }
-
   } catch (err) {
     stockList.innerHTML = `
       <div class="error">
-        ${BUTTON_TEXT.errorText || "Gagal load stock.<br />Sila refresh semula atau hubungi admin."}
+        ${buttonText.errorText || "Gagal load stock.<br />Sila refresh semula atau hubungi admin."}
       </div>
     `;
   }
 }
 
 function renderStock(products) {
+  const config = getPageConfig();
+  const buttonText = getButtonText();
+  const pricesConfig = config.PRICES || {};
   const stockList = document.getElementById("stockList");
 
   if (!stockList) return;
 
   if (!products.length) {
-    stockList.innerHTML = `<div class="loading">${BUTTON_TEXT.noDataText || "Tiada data stock."}</div>`;
+    stockList.innerHTML = `<div class="loading">${buttonText.noDataText || "Tiada data stock."}</div>`;
     return;
   }
 
   stockList.innerHTML = products.map(product => {
-    const prices = PRICES[product.key] || [];
+    const prices = pricesConfig[product.key] || [];
 
     return `
-      <div class="stock-item" data-product="${product.key}">
-        <button class="stock-head" type="button" onclick="togglePrice('${product.key}')">
+      <div class="stock-item" data-product="${escapeHtml(product.key)}">
+        <button class="stock-head" type="button" onclick="togglePrice('${escapeJs(product.key)}')">
           <div class="product-left">
-            <div class="product-icon">${product.icon || "📦"}</div>
+            <div class="product-icon">${escapeHtml(product.icon || "📦")}</div>
             <div>
-              <div class="product-name">${product.name}</div>
+              <div class="product-name">${escapeHtml(product.name || "Produk")}</div>
               <div class="slot-count">
-                ${product.available} ${BUTTON_TEXT.slotText || "slot available"}
+                ${escapeHtml(String(product.available || 0))} ${escapeHtml(buttonText.slotText || "slot available")}
               </div>
             </div>
           </div>
 
-          <div class="badge ${product.statusClass}">
-            ${product.status}
+          <div class="badge ${escapeHtml(product.statusClass || "out")}">
+            ${escapeHtml(product.status || "Habis Stok")}
           </div>
         </button>
 
@@ -176,10 +185,12 @@ function renderStock(products) {
 }
 
 function renderPricePanel(prices) {
+  const buttonText = getButtonText();
+
   if (!prices || !prices.length) {
     return `
       <div class="small-text">
-        ${BUTTON_TEXT.noPriceText || "Harga belum tersedia. Sila tanya admin."}
+        ${escapeHtml(buttonText.noPriceText || "Harga belum tersedia. Sila tanya admin.")}
       </div>
     `;
   }
@@ -188,29 +199,70 @@ function renderPricePanel(prices) {
     <div class="price-title">Harga Pakej</div>
 
     <div class="price-labels">
-      <div>${BUTTON_TEXT.priceHeaderPlan || "Plan"}</div>
-      <div>${BUTTON_TEXT.priceHeaderReseller || "Reseller"}</div>
-      <div>${BUTTON_TEXT.priceHeaderSell || "Jual Min"}</div>
+      <div>${escapeHtml(buttonText.priceHeaderPlan || "Plan")}</div>
+      <div>${escapeHtml(buttonText.priceHeaderReseller || "Reseller")}</div>
+      <div>${escapeHtml(buttonText.priceHeaderSell || "Jual Min")}</div>
     </div>
 
     ${prices.map(item => `
       <div class="price-row">
-        <div class="plan-name">${item.plan}</div>
-        <div class="reseller-price">${item.reseller}</div>
-        <div class="sell-price">${item.sell}</div>
-        ${item.note ? `<div class="bonus-note">🎁 ${item.note}</div>` : ""}
+        <div class="plan-name">${escapeHtml(item.plan || "-")}</div>
+        <div class="reseller-price">${escapeHtml(item.reseller || "-")}</div>
+        <div class="sell-price">${escapeHtml(item.sell || "-")}</div>
+        ${item.note ? `<div class="bonus-note">🎁 ${escapeHtml(item.note)}</div>` : ""}
       </div>
     `).join("")}
   `;
 }
 
 function togglePrice(productKey) {
-  const item = document.querySelector(`.stock-item[data-product="${productKey}"]`);
-
+  const item = document.querySelector(`.stock-item[data-product="${CSS.escape(productKey)}"]`);
   if (!item) return;
-
   item.classList.toggle("open");
 }
 
-applyTextConfig();
-loadStock();
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function escapeJs(value) {
+  return String(value).replaceAll("\\", "\\\\").replaceAll("'", "\\'");
+}
+
+function waitForConfigAndInit() {
+  const frame = document.getElementById("configFrame");
+
+  function initNow() {
+    if (frame && frame.contentWindow && frame.contentWindow.NUMO_PAGE_CONFIG) {
+      window.NUMO_PAGE_CONFIG = frame.contentWindow.NUMO_PAGE_CONFIG;
+    }
+
+    applyTextConfig();
+    loadStock();
+  }
+
+  if (frame) {
+    frame.addEventListener("load", initNow, { once: true });
+
+    // Backup kalau iframe load event terlepas.
+    setTimeout(() => {
+      if (!window.NUMO_PAGE_HAS_INIT) {
+        window.NUMO_PAGE_HAS_INIT = true;
+        initNow();
+      }
+    }, 800);
+  } else {
+    initNow();
+  }
+}
+
+window.addEventListener("load", () => {
+  if (window.NUMO_PAGE_HAS_INIT) return;
+  window.NUMO_PAGE_HAS_INIT = true;
+  waitForConfigAndInit();
+});
