@@ -30,7 +30,9 @@ function applyTextConfig() {
   setText("brandSubtitle", TEXT.brandSubtitle);
   setText("loginTitle", TEXT.loginTitle);
   setText("loginInstruction", TEXT.loginInstruction);
-  setText("topNotice", TEXT.topNotice);
+  setText("creditSectionTitle", TEXT.creditSectionTitle);
+  setText("creditIntro", TEXT.creditIntro, true);
+  setText("topNotice", TEXT.topNotice, true);
   setText("stockTitle", TEXT.stockTitle);
   setText("paymentTitle", TEXT.paymentTitle);
   setText("paymentInstruction", TEXT.paymentInstruction, true);

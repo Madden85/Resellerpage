@@ -12,7 +12,7 @@ window.NUMO_PAGE_CONFIG = {
 
   // API baru Step 14B/14E untuk login reseller + credit + harga.
   // Paste Web App URL reseller credit API dekat sini.
-  RESELLER_CREDIT_API_URL: "https://script.google.com/macros/s/AKfycbwUnzeeXDpYfbeKPEdE7YW5-7o8Dh0e4x-05ZHvaUCr0M1brvp_rKOVKdkAl9O65eG8lw/exec",
+  RESELLER_CREDIT_API_URL: "PASTE_RESELLER_CREDIT_API_URL_HERE",
 
   RESELLER_BOT_LINK: "https://t.me/NumoReseller_bot?start=order",
   PAYMENT_QR_IMAGE: "./paymentqr.jpg",
@@ -23,12 +23,14 @@ window.NUMO_PAGE_CONFIG = {
     brandSubtitle: "STOCK CHECKER",
     loginTitle: "🔐 Reseller Login",
     loginInstruction: "Masukkan password reseller untuk check stock dan balance kredit.",
-    topNotice: "Check stock dahulu sebelum buat payment. Lepas payment, tekan Dapatkan Akaun dan hantar resit dalam bot.",
+    creditSectionTitle: "💰 Reseller Credit",
+    creditIntro: "Order sekarang menggunakan sistem credit.<br><br>Pastikan credit anda mencukupi sebelum buat order.<br><br>Jika credit tidak cukup, sila topup dengan admin.<br><br>Min topap: RM50<br><br>Selepas topup berjaya, balance akan update di page ini.",
+    topNotice: "Sila tunggu sehingga stock refresh sepenuhnya.<br><br>Check stock dahulu. Jika stock available, tekan button DAPATKAN AKAUN.",
     stockTitle: "📦 Stock Available",
-    paymentTitle: "💳 Payment",
-    paymentInstruction: "Sila check stock dahulu. Jika stock available, buat payment dan tekan button Dapatkan Akaun.",
-    paymentNote: "Scan QR untuk buat bayaran.<br />Selepas payment, tekan button di bawah.",
-    creditNote: "Jika kredit tidak cukup, sila topup dengan admin.",
+    paymentTitle: "🚀 Cara Buat Order",
+    paymentInstruction: "",
+    paymentNote: "<b>Note: PENTING❗</b><br><br>Sebelum buat order, pastikan ada USERNAME TELEGRAM CUSTOMER (@username) sebab setiap order perlu isi username customer.",
+    creditNote: "",
     availableCreditLabel: "Available Credit",
     balanceLabel: "Balance",
     holdLabel: "Credit Hold",
