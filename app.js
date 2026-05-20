@@ -57,14 +57,7 @@ function applyTextConfig() {
     topupButton.href = PAGE_CONFIG.ADMIN_LINK || "https://t.me/ownernumoventures";
   }
 
-  const orderButton = document.getElementById("orderButton");
-  if (orderButton) {
-    let botLink = PAGE_CONFIG.RESELLER_BOT_LINK || "#";
-    if (botLink && !botLink.startsWith("http")) {
-      botLink = "https://t.me/" + botLink.replace("@", "");
-    }
-    orderButton.href = botLink;
-  }
+  updateOrderButtonLink();
 
   renderPaymentQr();
 }
@@ -79,6 +72,28 @@ function renderPaymentQr() {
     qrContainer.innerHTML = `<img class="qr-image" src="${escapeHtml(qrImage)}" alt="QR Payment" />`;
   } else {
     qrContainer.innerHTML = `<div class="qr-placeholder">LETAK QR PAYMENT DI SINI</div>`;
+  }
+}
+
+function getBotBaseLink() {
+  let botLink = PAGE_CONFIG.RESELLER_BOT_LINK || "#";
+  if (botLink && !botLink.startsWith("http")) {
+    botLink = "https://t.me/" + botLink.replace("@", "");
+  }
+  return botLink.split("?")[0];
+}
+
+function updateOrderButtonLink() {
+  const orderButton = document.getElementById("orderButton");
+  if (!orderButton) return;
+
+  const token = sessionStorage.getItem("numo_reseller_token") || "";
+  const base = getBotBaseLink();
+
+  if (token && base && base !== "#") {
+    orderButton.href = base + "?start=" + encodeURIComponent("bind_" + token);
+  } else {
+    orderButton.href = base || "#";
   }
 }
 
@@ -210,6 +225,7 @@ function showMainContent(reseller) {
   if (mainContent) mainContent.style.display = "block";
 
   renderResellerProfile(reseller || CURRENT_RESELLER);
+  updateOrderButtonLink();
   loadPricesThenStock();
 }
 
@@ -249,6 +265,7 @@ function logoutPage(clearMessage = true) {
   if (mainContent) mainContent.style.display = "none";
   if (loginCard) loginCard.style.display = "block";
   if (passwordInput) passwordInput.value = "";
+  updateOrderButtonLink();
   if (clearMessage) showLoginMessage("", "");
 }
 
