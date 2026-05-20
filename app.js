@@ -1,6 +1,7 @@
 let PAGE_CONFIG = {};
 let BUTTON_TEXT = {};
 let pageStarted = false;
+let CURRENT_RESELLER = null;
 
 function getConfig() {
   const frame = document.getElementById("configFrame");
@@ -34,14 +35,25 @@ function applyTextConfig() {
   setText("paymentInstruction", TEXT.paymentInstruction, true);
   setText("paymentNote", TEXT.paymentNote, true);
   setText("footerText", TEXT.footerText);
+  setText("creditNote", TEXT.creditNote);
+  setText("availableCreditLabel", TEXT.availableCreditLabel);
+  setText("balanceLabel", TEXT.balanceLabel);
+  setText("holdLabel", TEXT.holdLabel);
+
   setText("refreshButton", BUTTON_TEXT.refreshButton);
   setText("orderButton", BUTTON_TEXT.orderButton);
   setText("loginButton", BUTTON_TEXT.loginButton);
   setText("logoutButton", BUTTON_TEXT.logoutButton);
+  setText("topupButton", BUTTON_TEXT.topupButton);
 
   const passwordInput = document.getElementById("passwordInput");
   if (passwordInput && BUTTON_TEXT.passwordPlaceholder) {
     passwordInput.placeholder = BUTTON_TEXT.passwordPlaceholder;
+  }
+
+  const topupButton = document.getElementById("topupButton");
+  if (topupButton) {
+    topupButton.href = PAGE_CONFIG.ADMIN_LINK || "https://t.me/ownernumoventures";
   }
 
   const orderButton = document.getElementById("orderButton");
@@ -63,7 +75,7 @@ function renderPaymentQr() {
   const qrImage = PAGE_CONFIG.PAYMENT_QR_IMAGE || "";
 
   if (qrImage) {
-    qrContainer.innerHTML = `<img class="qr-image" src="${qrImage}" alt="QR Payment" />`;
+    qrContainer.innerHTML = `<img class="qr-image" src="${escapeHtml(qrImage)}" alt="QR Payment" />`;
   } else {
     qrContainer.innerHTML = `<div class="qr-placeholder">LETAK QR PAYMENT DI SINI</div>`;
   }
@@ -71,7 +83,7 @@ function renderPaymentQr() {
 
 function jsonp(url) {
   return new Promise((resolve, reject) => {
-    const callbackName = "jsonp_callback_" + Math.round(100000 * Math.random());
+    const callbackName = "jsonp_callback_" + Math.round(100000000 * Math.random());
 
     window[callbackName] = function(data) {
       delete window[callbackName];
@@ -91,6 +103,15 @@ function jsonp(url) {
   });
 }
 
+function buildUrl(baseUrl, params) {
+  const query = Object.keys(params || {})
+    .filter(key => params[key] !== undefined && params[key] !== null && params[key] !== "")
+    .map(key => encodeURIComponent(key) + "=" + encodeURIComponent(params[key]))
+    .join("&");
+
+  return baseUrl + (baseUrl.includes("?") ? "&" : "?") + query;
+}
+
 function showLoginMessage(type, text) {
   const box = document.getElementById("loginMessage");
   if (!box) return;
@@ -101,6 +122,10 @@ function showLoginMessage(type, text) {
   }
 
   box.innerHTML = `<div class="${type === "success" ? "success" : "error"}">${text}</div>`;
+}
+
+function getCreditApiUrl() {
+  return PAGE_CONFIG.RESELLER_CREDIT_API_URL || PAGE_CONFIG.RESELLER_STOCK_API_URL || "";
 }
 
 async function checkPassword() {
@@ -115,35 +140,107 @@ async function checkPassword() {
   showLoginMessage("success", BUTTON_TEXT.checkingPasswordText || "Checking password...");
 
   try {
-    const apiUrl = PAGE_CONFIG.RESELLER_STOCK_API_URL || "";
-    if (!apiUrl || apiUrl.includes("PASTE_")) throw new Error("API URL belum diset");
+    const apiUrl = getCreditApiUrl();
+    if (!apiUrl || apiUrl.includes("PASTE_")) throw new Error("RESELLER_CREDIT_API_URL belum diset");
 
-    const data = await jsonp(apiUrl + "?mode=checkPassword&password=" + encodeURIComponent(password));
+    const data = await jsonp(buildUrl(apiUrl, {
+      mode: "loginReseller",
+      password
+    }));
 
-    if (data && data.ok && data.valid) {
+    if (data && data.ok && data.valid && data.reseller && data.token) {
+      CURRENT_RESELLER = data.reseller;
       sessionStorage.setItem("numo_reseller_logged_in", "YES");
-      showMainContent();
+      sessionStorage.setItem("numo_reseller_token", data.token);
+      sessionStorage.setItem("numo_reseller_profile", JSON.stringify(data.reseller));
+
+      showLoginMessage("success", BUTTON_TEXT.loginSuccessText || "Login berjaya.");
+      showMainContent(data.reseller);
       return;
     }
 
-    showLoginMessage("error", BUTTON_TEXT.wrongPasswordText || "Password salah. Sila cuba semula.");
+    showLoginMessage("error", data.error || BUTTON_TEXT.wrongPasswordText || "Password salah. Sila cuba semula.");
   } catch (err) {
     showLoginMessage("error", "Gagal semak password. Sila cuba semula.");
   }
 }
 
-function showMainContent() {
+async function restoreSession() {
+  const token = sessionStorage.getItem("numo_reseller_token") || "";
+  const cachedProfile = sessionStorage.getItem("numo_reseller_profile") || "";
+
+  if (!token) return false;
+
+  try {
+    const apiUrl = getCreditApiUrl();
+    if (!apiUrl || apiUrl.includes("PASTE_")) throw new Error("RESELLER_CREDIT_API_URL belum diset");
+
+    const data = await jsonp(buildUrl(apiUrl, {
+      mode: "getResellerProfile",
+      token
+    }));
+
+    if (data && data.ok && data.reseller) {
+      CURRENT_RESELLER = data.reseller;
+      sessionStorage.setItem("numo_reseller_profile", JSON.stringify(data.reseller));
+      showMainContent(data.reseller);
+      return true;
+    }
+  } catch (err) {
+    // If API temporarily fails, use cached profile so the page still opens.
+    if (cachedProfile) {
+      try {
+        CURRENT_RESELLER = JSON.parse(cachedProfile);
+        showMainContent(CURRENT_RESELLER);
+        return true;
+      } catch (parseErr) {}
+    }
+  }
+
+  logoutPage(false);
+  return false;
+}
+
+function showMainContent(reseller) {
   const loginCard = document.getElementById("loginCard");
   const mainContent = document.getElementById("mainContent");
 
   if (loginCard) loginCard.style.display = "none";
   if (mainContent) mainContent.style.display = "block";
 
+  renderResellerProfile(reseller || CURRENT_RESELLER);
   loadStock();
 }
 
-function logoutPage() {
+function renderResellerProfile(reseller) {
+  if (!reseller) return;
+
+  setText("resellerName", reseller.name || "Reseller");
+  setText("resellerMeta", `ID: ${reseller.resellerId || "-"}${reseller.telegramUsername ? " • " + reseller.telegramUsername : ""}`);
+  setText("resellerStatus", reseller.status || "ACTIVE");
+
+  setText("creditBalance", money(reseller.balance));
+  setText("creditHold", money(reseller.hold));
+  setText("availableCredit", money(reseller.availableCredit));
+
+  const note = document.getElementById("creditNote");
+  if (note) {
+    if (Number(reseller.availableCredit || 0) <= 0) {
+      note.textContent = "Kredit anda kosong. Sila topup dengan admin sebelum buat order.";
+    } else if (Number(reseller.availableCredit || 0) < 10) {
+      note.textContent = "Kredit anda rendah. Sila topup dengan admin jika mahu terus buat order.";
+    } else {
+      note.textContent = (PAGE_CONFIG.TEXT && PAGE_CONFIG.TEXT.creditNote) || "Jika kredit tidak cukup, sila topup dengan admin.";
+    }
+  }
+}
+
+function logoutPage(clearMessage = true) {
   sessionStorage.removeItem("numo_reseller_logged_in");
+  sessionStorage.removeItem("numo_reseller_token");
+  sessionStorage.removeItem("numo_reseller_profile");
+  CURRENT_RESELLER = null;
+
   const loginCard = document.getElementById("loginCard");
   const mainContent = document.getElementById("mainContent");
   const passwordInput = document.getElementById("passwordInput");
@@ -151,7 +248,18 @@ function logoutPage() {
   if (mainContent) mainContent.style.display = "none";
   if (loginCard) loginCard.style.display = "block";
   if (passwordInput) passwordInput.value = "";
-  showLoginMessage("", "");
+  if (clearMessage) showLoginMessage("", "");
+}
+
+function togglePassword() {
+  const input = document.getElementById("passwordInput");
+  const btn = document.getElementById("togglePasswordButton");
+  if (!input || !btn) return;
+
+  const isPassword = input.type === "password";
+  input.type = isPassword ? "text" : "password";
+  btn.textContent = isPassword ? "🙈" : "👁";
+  btn.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
 }
 
 function formatDate(isoString) {
@@ -208,16 +316,16 @@ function renderStock(products) {
     const prices = PRICES[product.key] || [];
 
     return `
-      <div class="stock-item" data-product="${product.key}">
-        <button class="stock-head" type="button" onclick="togglePrice('${product.key}')">
+      <div class="stock-item" data-product="${escapeHtml(product.key)}">
+        <button class="stock-head" type="button" onclick="togglePrice('${escapeAttr(product.key)}')">
           <div class="product-left">
             <div class="product-icon">${product.icon || "📦"}</div>
             <div>
-              <div class="product-name">${product.name}</div>
-              <div class="slot-count">${product.available} ${BUTTON_TEXT.slotText || "slot available"}</div>
+              <div class="product-name">${escapeHtml(product.name)}</div>
+              <div class="slot-count">${escapeHtml(product.available)} ${BUTTON_TEXT.slotText || "slot available"}</div>
             </div>
           </div>
-          <div class="badge ${product.statusClass}">${product.status}</div>
+          <div class="badge ${escapeHtml(product.statusClass)}">${escapeHtml(product.status)}</div>
         </button>
         <div class="price-panel">${renderPricePanel(prices)}</div>
       </div>
@@ -239,20 +347,38 @@ function renderPricePanel(prices) {
     </div>
     ${prices.map(item => `
       <div class="price-row">
-        <div class="plan-name">${item.plan}</div>
-        <div class="reseller-price">${item.reseller}</div>
-        <div class="sell-price">${item.sell}</div>
-        ${item.note ? `<div class="bonus-note">🎁 ${item.note}</div>` : ""}
-        ${item.warning ? `<div class="warning-note">${item.warning}</div>` : ""}
+        <div class="plan-name">${escapeHtml(item.plan)}</div>
+        <div class="reseller-price">${escapeHtml(item.reseller)}</div>
+        <div class="sell-price">${escapeHtml(item.sell)}</div>
+        ${item.note ? `<div class="bonus-note">🎁 ${escapeHtml(item.note)}</div>` : ""}
+        ${item.warning ? `<div class="warning-note">${escapeHtml(item.warning)}</div>` : ""}
       </div>
     `).join("")}
   `;
 }
 
 function togglePrice(productKey) {
-  const item = document.querySelector(`.stock-item[data-product="${productKey}"]`);
+  const item = document.querySelector(`.stock-item[data-product="${CSS.escape(productKey)}"]`);
   if (!item) return;
   item.classList.toggle("open");
+}
+
+function money(value) {
+  const num = Number(value || 0);
+  return "RM" + num.toFixed(2).replace(".00", "");
+}
+
+function escapeHtml(value) {
+  return String(value === undefined || value === null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function escapeAttr(value) {
+  return String(value === undefined || value === null ? "" : value)
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'");
 }
 
 function initPage() {
@@ -265,9 +391,12 @@ function initPage() {
   const loginButton = document.getElementById("loginButton");
   const logoutButton = document.getElementById("logoutButton");
   const passwordInput = document.getElementById("passwordInput");
+  const togglePasswordButton = document.getElementById("togglePasswordButton");
 
   if (loginButton) loginButton.addEventListener("click", checkPassword);
-  if (logoutButton) logoutButton.addEventListener("click", logoutPage);
+  if (logoutButton) logoutButton.addEventListener("click", () => logoutPage(true));
+  if (togglePasswordButton) togglePasswordButton.addEventListener("click", togglePassword);
+
   if (passwordInput) {
     passwordInput.addEventListener("keydown", function(e) {
       if (e.key === "Enter") checkPassword();
@@ -275,7 +404,7 @@ function initPage() {
   }
 
   if (sessionStorage.getItem("numo_reseller_logged_in") === "YES") {
-    showMainContent();
+    restoreSession();
   }
 }
 

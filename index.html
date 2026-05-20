@@ -15,8 +15,22 @@
     .card { background: rgba(12,31,52,.95); border: 1px solid rgba(22,217,255,.25); border-radius: 18px; padding: 16px; margin-bottom: 16px; box-shadow: 0 0 18px rgba(0,194,255,.12); }
     .section-title { font-size: 17px; font-weight: 800; margin-bottom: 12px; color: #fff; }
     .small-text { font-size: 13px; color: #b8d8e8; line-height: 1.5; }
-    .input { width: 100%; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.08); color: #fff; border-radius: 14px; padding: 15px 16px; font-size: 16px; outline: none; margin-top: 12px; }
+    .input-wrap { position: relative; margin-top: 12px; }
+    .input { width: 100%; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.08); color: #fff; border-radius: 14px; padding: 15px 58px 15px 16px; font-size: 16px; outline: none; }
     .input::placeholder { color: #8db5c8; }
+    .eye-btn { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); border: 0; border-radius: 11px; width: 42px; height: 38px; background: rgba(255,255,255,.1); color: #fff; cursor: pointer; font-size: 17px; }
+    .reseller-card { display: grid; gap: 12px; }
+    .profile-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .profile-name { font-size: 18px; font-weight: 900; color: #fff; }
+    .profile-id { margin-top: 4px; color: #8db5c8; font-size: 12px; }
+    .status-pill { padding: 7px 10px; border-radius: 999px; background: #29f29a; color: #052013; font-size: 11px; font-weight: 900; white-space: nowrap; }
+    .balance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .balance-box { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 12px; }
+    .balance-box.full { grid-column: 1 / -1; background: rgba(41,242,154,.1); border-color: rgba(41,242,154,.28); }
+    .balance-label { color: #b8d8e8; font-size: 12px; margin-bottom: 5px; }
+    .balance-value { font-size: 20px; font-weight: 900; color: #fff; }
+    .balance-box.full .balance-value { color: #29f29a; font-size: 24px; }
+    .credit-note { background: rgba(255,214,90,.12); border: 1px solid rgba(255,214,90,.28); color: #ffe9a6; border-radius: 14px; padding: 11px; font-size: 12px; line-height: 1.45; }
     .stock-list { display: grid; gap: 10px; }
     .stock-item { background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; overflow: hidden; }
     .stock-head { width: 100%; border: 0; background: transparent; color: #fff; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 13px 12px; cursor: pointer; text-align: left; }
@@ -47,6 +61,7 @@
     .btn { width: 100%; border: 0; border-radius: 14px; padding: 15px 16px; font-size: 15px; font-weight: 800; cursor: pointer; text-decoration: none; display: block; text-align: center; margin-top: 12px; }
     .btn-primary { background: linear-gradient(135deg,#13cfff,#0b87ff); color: #fff; box-shadow: 0 0 20px rgba(19,207,255,.25); }
     .btn-secondary { background: rgba(255,255,255,.08); color: #fff; border: 1px solid rgba(255,255,255,.12); }
+    .btn-whatsapp { background: #29f29a; color: #052013; }
     .loading { text-align: center; padding: 16px; color: #b8d8e8; }
     .error { background: rgba(255,77,93,.12); border: 1px solid rgba(255,77,93,.4); color: #ffb8c0; padding: 12px; border-radius: 14px; font-size: 13px; line-height: 1.45; }
     .success { background: rgba(41,242,154,.12); border: 1px solid rgba(41,242,154,.35); color: #b8ffd9; padding: 12px; border-radius: 14px; font-size: 13px; line-height: 1.45; margin-top: 12px; }
@@ -63,14 +78,47 @@
 
     <div id="loginCard" class="card">
       <div id="loginTitle" class="section-title">🔐 Reseller Login</div>
-      <div id="loginInstruction" class="small-text">Masukkan password reseller untuk check stock.</div>
-      <input id="passwordInput" class="input" type="password" placeholder="Password reseller" autocomplete="off" />
+      <div id="loginInstruction" class="small-text">Masukkan password reseller untuk check stock dan balance kredit.</div>
+
+      <div class="input-wrap">
+        <input id="passwordInput" class="input" type="password" placeholder="Password reseller" autocomplete="off" />
+        <button id="togglePasswordButton" class="eye-btn" type="button" aria-label="Show password">👁</button>
+      </div>
+
       <button id="loginButton" class="btn btn-primary" type="button">LOGIN</button>
       <div id="loginMessage"></div>
     </div>
 
     <div id="mainContent">
       <div id="topNotice" class="notice">Check stock dahulu sebelum buat payment.</div>
+
+      <div class="card reseller-card">
+        <div class="profile-head">
+          <div>
+            <div id="resellerName" class="profile-name">Reseller</div>
+            <div id="resellerMeta" class="profile-id">ID: -</div>
+          </div>
+          <div id="resellerStatus" class="status-pill">ACTIVE</div>
+        </div>
+
+        <div class="balance-grid">
+          <div class="balance-box full">
+            <div id="availableCreditLabel" class="balance-label">Available Credit</div>
+            <div id="availableCredit" class="balance-value">RM0</div>
+          </div>
+          <div class="balance-box">
+            <div id="balanceLabel" class="balance-label">Balance</div>
+            <div id="creditBalance" class="balance-value">RM0</div>
+          </div>
+          <div class="balance-box">
+            <div id="holdLabel" class="balance-label">Credit Hold</div>
+            <div id="creditHold" class="balance-value">RM0</div>
+          </div>
+        </div>
+
+        <div id="creditNote" class="credit-note">Jika kredit tidak cukup, sila topup dengan admin.</div>
+        <a id="topupButton" class="btn btn-whatsapp" href="https://t.me/ownernumoventures" target="_blank">TOPUP KREDIT / CONTACT ADMIN</a>
+      </div>
 
       <div class="card">
         <div id="stockTitle" class="section-title">📦 Stock Available</div>

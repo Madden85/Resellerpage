@@ -7,20 +7,31 @@
 <body>
 <script>
 window.NUMO_PAGE_CONFIG = {
+  // API lama untuk stock display. Jangan ubah kalau stock page lama sudah jalan.
   RESELLER_STOCK_API_URL: "https://script.google.com/macros/s/AKfycbxNGsUEvcHCngNotv3qRmnBYi4VAX9XU7fPv7Mv7cqyl3LT3WdjT9ZsuSu9I-GI43qS2Q/exec",
+
+  // API baru Step 14B untuk login reseller + credit.
+  // Paste Web App URL Step 14B dekat sini.
+  RESELLER_CREDIT_API_URL: "1kaizoHHK-bRcr7EHHClJdTQHExLqo7Veueki3xvF-hk",
+
   RESELLER_BOT_LINK: "https://t.me/NumoReseller_bot?start=order",
   PAYMENT_QR_IMAGE: "./paymentqr.jpg",
+  ADMIN_LINK: "https://t.me/ownernumoventures",
 
   TEXT: {
     brandTitle: "NumoReseller",
     brandSubtitle: "STOCK CHECKER",
     loginTitle: "🔐 Reseller Login",
-    loginInstruction: "Masukkan password reseller untuk check stock.",
+    loginInstruction: "Masukkan password reseller untuk check stock dan balance kredit.",
     topNotice: "Check stock dahulu sebelum buat payment. Lepas payment, tekan Dapatkan Akaun dan hantar resit dalam bot.",
     stockTitle: "📦 Stock Available",
     paymentTitle: "💳 Payment",
     paymentInstruction: "Sila check stock dahulu. Jika stock available, buat payment dan tekan button Dapatkan Akaun.",
     paymentNote: "Scan QR untuk buat bayaran.<br />Selepas payment, tekan button di bawah.",
+    creditNote: "Jika kredit tidak cukup, sila topup dengan admin.",
+    availableCreditLabel: "Available Credit",
+    balanceLabel: "Balance",
+    holdLabel: "Credit Hold",
     footerText: "Numo Ventures © Reseller System"
   },
 
