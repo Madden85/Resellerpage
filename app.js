@@ -2,6 +2,7 @@ let PAGE_CONFIG = {};
 let BUTTON_TEXT = {};
 let pageStarted = false;
 let CURRENT_RESELLER = null;
+let PAGE_PRICES = {};
 
 function getConfig() {
   const frame = document.getElementById("configFrame");
@@ -209,7 +210,7 @@ function showMainContent(reseller) {
   if (mainContent) mainContent.style.display = "block";
 
   renderResellerProfile(reseller || CURRENT_RESELLER);
-  loadStock();
+  loadPricesThenStock();
 }
 
 function renderResellerProfile(reseller) {
@@ -277,6 +278,50 @@ function formatDate(isoString) {
   }
 }
 
+
+async function loadPricesThenStock() {
+  await loadResellerPrices();
+  await loadStock();
+}
+
+async function loadResellerPrices() {
+  const fallback = PAGE_CONFIG.PRICES || {};
+  PAGE_PRICES = fallback;
+
+  try {
+    const apiUrl = getCreditApiUrl();
+    if (!apiUrl || apiUrl.includes("PASTE_")) return;
+
+    const data = await jsonp(buildUrl(apiUrl, {
+      mode: "getResellerPrices"
+    }));
+
+    if (!data || !data.ok || !Array.isArray(data.prices)) return;
+
+    const grouped = {};
+
+    data.prices.forEach(item => {
+      const product = String(item.product || "").trim();
+      if (!product) return;
+
+      if (!grouped[product]) grouped[product] = [];
+
+      grouped[product].push({
+        plan: item.plan || "",
+        reseller: "RM" + Number(item.resellerPrice || 0).toFixed(2).replace(".00", ""),
+        sell: item.sellPrice ? "RM" + Number(item.sellPrice || 0).toFixed(2).replace(".00", "") : "-",
+        note: item.note || "",
+        warning: item.warning || ""
+      });
+    });
+
+    PAGE_PRICES = grouped;
+  } catch (err) {
+    PAGE_PRICES = fallback;
+  }
+}
+
+
 async function loadStock() {
   const stockList = document.getElementById("stockList");
   const updatedAt = document.getElementById("updatedAt");
@@ -304,7 +349,7 @@ async function loadStock() {
 
 function renderStock(products) {
   const stockList = document.getElementById("stockList");
-  const PRICES = PAGE_CONFIG.PRICES || {};
+  const PRICES = PAGE_PRICES || PAGE_CONFIG.PRICES || {};
   if (!stockList) return;
 
   if (!products.length) {
