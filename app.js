@@ -99,26 +99,74 @@ function updateOrderButtonLink() {
   }
 }
 
-function jsonp(url) {
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function removeJsonpScript(script) {
+  try {
+    if (script && script.parentNode) script.parentNode.removeChild(script);
+  } catch (err) {}
+}
+
+function jsonpOnce(url, timeoutMs = 15000) {
   return new Promise((resolve, reject) => {
-    const callbackName = "jsonp_callback_" + Math.round(100000000 * Math.random());
+    const callbackName = "jsonp_callback_" + Date.now() + "_" + Math.round(100000000 * Math.random());
+    let done = false;
+    let timer = null;
+
+    const script = document.createElement("script");
+
+    function cleanup() {
+      if (timer) clearTimeout(timer);
+      try { delete window[callbackName]; } catch (err) { window[callbackName] = undefined; }
+      removeJsonpScript(script);
+    }
 
     window[callbackName] = function(data) {
-      delete window[callbackName];
-      if (script.parentNode) document.body.removeChild(script);
+      if (done) return;
+      done = true;
+      cleanup();
       resolve(data);
     };
 
-    const script = document.createElement("script");
-    script.src = url + (url.includes("?") ? "&" : "?") + "callback=" + callbackName;
+    timer = setTimeout(function() {
+      if (done) return;
+      done = true;
+      cleanup();
+      reject(new Error("API timeout"));
+    }, timeoutMs);
+
     script.onerror = function() {
-      delete window[callbackName];
-      if (script.parentNode) document.body.removeChild(script);
+      if (done) return;
+      done = true;
+      cleanup();
       reject(new Error("Gagal load data"));
     };
 
+    const sep = url.includes("?") ? "&" : "?";
+    script.src = url + sep + "callback=" + encodeURIComponent(callbackName) + "&_ts=" + Date.now();
     document.body.appendChild(script);
   });
+}
+
+async function jsonp(url, options = {}) {
+  const retries = Number(options.retries || 3);
+  const timeoutMs = Number(options.timeoutMs || 15000);
+  let lastErr = null;
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await jsonpOnce(url, timeoutMs);
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) {
+        await sleep(700 * attempt);
+      }
+    }
+  }
+
+  throw lastErr || new Error("Gagal load data");
 }
 
 function buildUrl(baseUrl, params) {
@@ -146,6 +194,23 @@ function getCreditApiUrl() {
   return PAGE_CONFIG.RESELLER_CREDIT_API_URL || PAGE_CONFIG.RESELLER_STOCK_API_URL || "";
 }
 
+function setLoginButtonLoading(isLoading) {
+  const loginButton = document.getElementById("loginButton");
+  if (!loginButton) return;
+
+  if (isLoading) {
+    loginButton.disabled = true;
+    loginButton.style.opacity = "0.7";
+    loginButton.style.pointerEvents = "none";
+    loginButton.textContent = BUTTON_TEXT.checkingPasswordText || "Checking password...";
+  } else {
+    loginButton.disabled = false;
+    loginButton.style.opacity = "";
+    loginButton.style.pointerEvents = "";
+    loginButton.textContent = BUTTON_TEXT.loginButton || "LOGIN";
+  }
+}
+
 async function checkPassword() {
   const input = document.getElementById("passwordInput");
   const password = input ? input.value.trim() : "";
@@ -156,6 +221,7 @@ async function checkPassword() {
   }
 
   showLoginMessage("success", BUTTON_TEXT.checkingPasswordText || "Checking password...");
+  setLoginButtonLoading(true);
 
   try {
     const apiUrl = getCreditApiUrl();
@@ -164,7 +230,7 @@ async function checkPassword() {
     const data = await jsonp(buildUrl(apiUrl, {
       mode: "loginReseller",
       password
-    }));
+    }), { retries: 3, timeoutMs: 18000 });
 
     if (data && data.ok && data.valid && data.reseller && data.token) {
       CURRENT_RESELLER = data.reseller;
@@ -177,11 +243,14 @@ async function checkPassword() {
       return;
     }
 
-    showLoginMessage("error", data.error || BUTTON_TEXT.wrongPasswordText || "Password salah. Sila cuba semula.");
+    showLoginMessage("error", (data && data.error) || BUTTON_TEXT.wrongPasswordText || "Password salah / akaun tidak aktif. Sila cuba semula.");
   } catch (err) {
-    showLoginMessage("error", "Gagal semak password. Sila cuba semula.");
+    showLoginMessage("error", BUTTON_TEXT.serverBusyText || "Server lambat/gagal respond. Sila tunggu 10 saat dan cuba LOGIN semula.");
+  } finally {
+    setLoginButtonLoading(false);
   }
 }
+
 
 async function restoreSession() {
   const token = sessionStorage.getItem("numo_reseller_token") || "";
@@ -196,7 +265,7 @@ async function restoreSession() {
     const data = await jsonp(buildUrl(apiUrl, {
       mode: "getResellerProfile",
       token
-    }));
+    }), { retries: 3, timeoutMs: 18000 });
 
     if (data && data.ok && data.reseller) {
       CURRENT_RESELLER = data.reseller;
@@ -313,7 +382,7 @@ async function loadResellerPrices() {
 
     const data = await jsonp(buildUrl(apiUrl, {
       mode: "getResellerPrices"
-    }));
+    }), { retries: 3, timeoutMs: 18000 });
 
     if (!data || !data.ok || !Array.isArray(data.prices)) return;
 
@@ -353,7 +422,7 @@ async function loadStock() {
     const apiUrl = PAGE_CONFIG.RESELLER_STOCK_API_URL || "";
     if (!apiUrl || apiUrl.includes("PASTE_")) throw new Error("RESELLER_STOCK_API_URL belum diset");
 
-    const data = await jsonp(apiUrl + "?mode=resellerStock");
+    const data = await jsonp(apiUrl + "?mode=resellerStock", { retries: 3, timeoutMs: 18000 });
     if (!data.ok) throw new Error(data.error || "API error");
 
     renderStock(data.products || []);

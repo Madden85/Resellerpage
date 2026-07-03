@@ -6,6 +6,7 @@ window.NUMO_BUTTON_TEXT = {
   topupButton: "TOPUP KREDIT / CONTACT ADMIN",
   passwordPlaceholder: "Password reseller",
   checkingPasswordText: "Checking password...",
+  serverBusyText: "Server lambat/gagal respond. Sila tunggu 10 saat dan cuba LOGIN semula.",
   wrongPasswordText: "Password salah / akaun tidak aktif. Sila cuba semula.",
   loginSuccessText: "Login berjaya.",
   priceHeaderPlan: "Plan",
